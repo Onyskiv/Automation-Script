@@ -21,6 +21,26 @@ This script automate rendering=
 try(closeRolloutFloater fAutomationScript) catch()
 global fAutomationScript = newRolloutFloater "Automation Script" 300 550
 
+fn getScriptInfo s releaseInfo: "" =
+(		
+	if(releaseInfo != "") do
+	(
+		r = getINISetting s releaseInfo
+		return r
+	)
+	
+	v = getINISetting s "INFO" "VERSION"
+	a = getINISetting s "INFO" "AUTHOR"
+	n = getINISetting s "INFO" "NAME"
+	o = getINISetting s "ABOUT"
+	c = getINISetting s "INFO" "DEV"
+	h = getINISetting s "INFO" "HELP"
+	
+	r = for i in (getINISetting s) where i != "ABOUT" and i != "SCRIPT" and i != "COPY" collect i
+	
+	return #(n, a, v, o, r, c, h)
+)
+
 rollout _rStep0  "Path"
 (
 	group "Models"
@@ -102,14 +122,12 @@ rollout _rStep0  "Path"
 		b.coords.U_Tiling = 1.0
 		b.coords.V_Tiling = 1.0
 
-		d[1] = b.bitmap.width
-		d[2] = b.bitmap.height
+		d[1] = b.bitmap.width as float 
+		d[2] = b.bitmap.height as float
 
-		a = amax d / amin d
+		k = 1.0 / (amax d / amin d)
 
-		s = (1.0 / a)
-
-		if(d[1] > d[2]) then b.coords.U_Tiling = s else b.coords.V_Tiling = s
+		if(d[1] > d[2]) then b.coords.U_Tiling = k else b.coords.V_Tiling = k
 	)
 	
 	fn updateList =
