@@ -2,7 +2,7 @@
 [INFO] 
 
 NAME = Automation Script
-VERSION = 1.0.0
+VERSION = 1.0.1
 AUTHOR = MastaMan
 DEV = 
 HELP = help\automationScript.html
@@ -10,6 +10,10 @@ HELP = help\automationScript.html
 [1.0.0]
 
 * Initial release =
+
+[1.0.1]
+
++ Added: Support for TGA format=
 
 [ABOUT]
 
@@ -109,7 +113,7 @@ rollout _rStep0  "Path"
 		
 		tex = #()
 		
-		types = #(".jpg", ".png", ".tiff", ".gif", ".bmp")
+		types = #(".jpg", ".png", ".tiff", ".gif", ".bmp", ".tga")
 		for i in types do join tex (getFiles (t + @"\*" + i))
 		
 		return tex
