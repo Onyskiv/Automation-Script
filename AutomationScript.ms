@@ -2,7 +2,7 @@
 [INFO] 
 
 NAME = Automation Script
-VERSION = 1.0.1
+VERSION = 1.0.2
 AUTHOR = MastaMan
 DEV = 
 HELP = help\automationScript.html
@@ -15,6 +15,10 @@ HELP = help\automationScript.html
 
 + Added: Support for TGA format=
 
+[1.0.2]
+
++ Added: Render from different cams=
+
 [ABOUT]
 
 This script automate rendering=
@@ -23,7 +27,7 @@ This script automate rendering=
 */	
 
 try(closeRolloutFloater fAutomationScript) catch()
-global fAutomationScript = newRolloutFloater "Automation Script" 300 550
+global fAutomationScript = newRolloutFloater "Automation Script" 300 620
 
 fn getScriptInfo s releaseInfo: "" =
 (		
@@ -52,6 +56,13 @@ rollout _rStep0  "Path"
 		listbox lbxModelsList "" height: 10
 		button btnAddModels "Add" width: 90 across: 2
 		button btnRemoveModel "Remove" width: 90
+	)
+	
+	group "Cameras"
+	(
+		label lblCameras "Add part of camera name separated by \",\"" align: #left
+		label lblCameras2 "Example: front, left, top" align: #left		
+		edittext edtCameras "" height:25 
 	)
 	
 	group "Textures Path"
@@ -106,6 +117,10 @@ rollout _rStep0  "Path"
 		
 	fn getSaveRendersTo = getIniSetting iniVault "RENDER" "SAVETO"
 	fn setSaveRendersTo p = setIniSetting iniVault "RENDER" "SAVETO" p
+		
+	fn setCameras p = setIniSetting iniVault "CAMERAS" "ENUM" p
+	fn getCamerasArray = for i in filterString (getIniSetting iniVault "CAMERAS" "ENUM") "," collect trimRight (trimLeft i " ") " "
+	fn getCameras = getIniSetting iniVault "CAMERAS" "ENUM"
 	
 	fn getTextures = 
 	(
@@ -159,8 +174,14 @@ rollout _rStep0  "Path"
 		
 		f = filenameFromPath (getReplaceTexturePath())
 		btnReplaceTexture.caption = if(f.count != 0) then f else "Browse"
+			
+			
+		c = getCameras()
+		edtCameras.text = c
 	)
 	
+	on edtCameras changed v do setCameras v
+		
 	on btnAddModels pressed do
 	(
 		f = getOpenModels()
@@ -260,36 +281,44 @@ rollout _rStep0  "Path"
 				
 		textureList = getTextures()
 		
+			
 		for s in szModels where doesFileExist s do
 		(
 			loadMaxFile s useFileUnits: true quiet: true
-			cams = cameras as array
-			
+						
+			cams = #()
+			for cc in (cameras as array) where classOf cc != Targetobject do for c in (getCamerasArray()) where findString cc.name c == 1 do append cams cc
+				
 			b = findReplaceTextures()
 			
-			for t in textureList do
-			(				
-				n = szSaveTo + @"\" + getFilenameFile s + "_" + getFilenameFile t + ".jpg"
+			for cam in cams do
+			(
+				for t in textureList do
+				(				
+					n = szSaveTo + @"\" + getFilenameFile s + "_" + getFilenameFile t + "_" + cam.name + ".jpg"
+									
+					if(cam != undefined) do viewport.setCamera cam
+					rendSaveFile = on
+					rendOutputFileName = n	
+					vr.output_splitfilename = n	
+					
+					-- Set textures
+					for i in b do 
+					(	
+						i.filename = t
+						setBitmapTilig i
+					)
 								
-				if(cams.count > 0) do viewport.setCamera cams[1]
-				rendSaveFile = on
-				rendOutputFileName = n	
-				vr.output_splitfilename = n	
-				
-				-- Set textures
-				for i in b do 
-				(	
-					i.filename = t
-					setBitmapTilig i
+					max quick render
+					
+					if (keyboard.escPressed) do 
+					(
+						_RENDER = false
+						return false
+					)			
 				)
-							
-				max quick render
 				
-				if (keyboard.escPressed) do 
-				(
-					_RENDER = false
-					return false
-				)				
+				if(_RENDER == false) do exit
 			)
 			
 			if(_RENDER == false) do exit
