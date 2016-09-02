@@ -2,7 +2,7 @@
 [INFO] 
 
 NAME = Automation Script
-VERSION = 1.0.2
+VERSION = 1.0.3
 AUTHOR = MastaMan
 DEV = 
 HELP = help\automationScript.html
@@ -19,6 +19,12 @@ HELP = help\automationScript.html
 
 + Added: Render from different cams=
 
+[1.0.3]
+
++ Added: Button Quadrify UVW=
+- BugFix: Render only one texture=
+* If not found cams from list, get default cam=
+
 [ABOUT]
 
 This script automate rendering=
@@ -27,7 +33,7 @@ This script automate rendering=
 */	
 
 try(closeRolloutFloater fAutomationScript) catch()
-global fAutomationScript = newRolloutFloater "Automation Script" 300 620
+global fAutomationScript = newRolloutFloater "Automation Script" 300 630
 
 fn getScriptInfo s releaseInfo: "" =
 (		
@@ -73,7 +79,8 @@ rollout _rStep0  "Path"
 	
 	group "Replace this texture in render"
 	(		
-		button btnReplaceTexture "Browse" 
+		checkbox cbxQuadrifyUVW "Quadrify UVW" align: #left
+		button btnReplaceTexture "Browse" 		
 	)
 	
 	group "Save renders to"
@@ -106,6 +113,9 @@ rollout _rStep0  "Path"
 		return f
 	)
 	
+	fn getQuadrifyUVW = getIniSetting iniVault "TEXTURES" "QUADRIFYUVW"
+	fn setQuadrifyUVW p = setIniSetting iniVault "TEXTURES" "QUADRIFYUVW" (p as string)
+	
 	fn getModels = getIniSetting iniVault "MODELS"
 	fn addModels m = for i in m do setIniSetting iniVault "MODELS" i ""
 		
@@ -121,6 +131,16 @@ rollout _rStep0  "Path"
 	fn setCameras p = setIniSetting iniVault "CAMERAS" "ENUM" p
 	fn getCamerasArray = for i in filterString (getIniSetting iniVault "CAMERAS" "ENUM") "," collect trimRight (trimLeft i " ") " "
 	fn getCameras = getIniSetting iniVault "CAMERAS" "ENUM"
+	fn getCamList =
+	(
+		cams = #()
+		camsArray = getCamerasArray()
+		for cc in (cameras as array) where classOf cc != Targetobject do for c in camsArray where findString cc.name c == 1 do append cams cc
+		
+		if(cams.count == 0 and cameras.count != 0) do append cams cameras[1]
+		
+		return cams
+	)
 	
 	fn getTextures = 
 	(
@@ -178,9 +198,13 @@ rollout _rStep0  "Path"
 			
 		c = getCameras()
 		edtCameras.text = c
+			
+		q = getQuadrifyUVW()
+		cbxQuadrifyUVW.checked = if(q == "" or q == "false") then false else true
 	)
 	
 	on edtCameras changed v do setCameras v
+	on cbxQuadrifyUVW changed v do setQuadrifyUVW v
 		
 	on btnAddModels pressed do
 	(
@@ -286,14 +310,13 @@ rollout _rStep0  "Path"
 		(
 			loadMaxFile s useFileUnits: true quiet: true
 						
-			cams = #()
-			for cc in (cameras as array) where classOf cc != Targetobject do for c in (getCamerasArray()) where findString cc.name c == 1 do append cams cc
-				
+			cams = getCamList()
+							
 			b = findReplaceTextures()
 			
-			for cam in cams do
+			for t in textureList do
 			(
-				for t in textureList do
+				for cam in cams do
 				(				
 					n = szSaveTo + @"\" + getFilenameFile s + "_" + getFilenameFile t + "_" + cam.name + ".jpg"
 									
@@ -306,7 +329,7 @@ rollout _rStep0  "Path"
 					for i in b do 
 					(	
 						i.filename = t
-						setBitmapTilig i
+						if(cbxQuadrifyUVW.checked) do setBitmapTilig i
 					)
 								
 					max quick render
